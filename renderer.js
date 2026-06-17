@@ -1,15 +1,7 @@
 const DEFAULT_SUBJECT_QUOTAS = {
-  "Math": { target: 3, hours: 1, minutes: 0, seconds: 0 },
-  "Physics": { target: 3, hours: 1, minutes: 0, seconds: 0 },
-  "Arduino": { target: 2, hours: 1, minutes: 0, seconds: 0 },
-  "Cosmology": { target: 2, hours: 1, minutes: 0, seconds: 0 },
-  "Astronomy": { target: 2, hours: 1, minutes: 0, seconds: 0 },
-  "Aviation": { target: 1, hours: 1, minutes: 0, seconds: 0 },
-  "French": { target: 4, hours: 1, minutes: 0, seconds: 0 },
-  "Ancient Greek": { target: 3, hours: 1, minutes: 0, seconds: 0 },
-  "Ielts": { target: 5, hours: 1, minutes: 0, seconds: 0 },
-  "Reading": { target: 7, hours: 1, minutes: 0, seconds: 0 },
-  "Curiosity": { target: 3, hours: 1, minutes: 0, seconds: 0 }
+  "subject1": { target: 3, hours: 1, minutes: 0, seconds: 0 },
+  "subject2": { target: 3, hours: 1, minutes: 0, seconds: 0 },
+  
 };
 
 // ===============================
