@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>tracking system</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>tracking system</h1>
+    <div class="header-controls">
+      <button id="btn-toggle-summary">show less</button>
+      <button id="btn-edit-quotas">edit quotas</button>
+    </div>
+  </header>
+
+  <div id="quota-dashboard" class="quota-container"></div>
+
+ <div id="quota-editor-drawer" class="control-panel hidden">
+  <div class="panel-section">
+    <h3>configure targets & rules</h3>
+
+ <div class="quota-edit-header-display">
+  <span>Activity</span>
+  <span>Qty</span>
+
+  <span></span>
+
+  <span>H</span>
+  <span>M</span>
+  <span>S</span>
+</div>
+
+    <!-- LIST: This is where the JS injects your rows -->
+    <div id="quota-edit-list" class="quota-edit-list"></div>
+
+    <!-- CREATE BLOCK: Moved to sit below the list -->
+    <div class="create-card-container">
+      <label>create new:</label>
+      <div class="create-input-group">
+        <input type="text" id="new-subject-name" placeholder="activity name...">
+        <button id="btn-add-custom-subject">add</button>
+      </div>
+    </div>
+
+    <!-- SAVE BUTTON: Keep this at the very bottom -->
+    <button id="btn-save-quotas" class="btn-primary">save adjustments</button>
+  </div>
+</div>
+
+  <hr class="divider">
+
+  <main>
+    <div class="week-nav">
+      <button id="btn-prev-week" class="btn-text">previous</button>
+      <span id="current-week-range">loading dates</span>
+      <button id="btn-next-week" class="btn-text">next</button>
+    </div>
+
+    <div id="calendar-grid" class="calendar-grid"></div>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
