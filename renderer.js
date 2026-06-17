@@ -77,6 +77,10 @@ let activeTimerInterval = null;
 let activeTimerSeconds = 0;
 let activeDayTargetStr = null;
 let activeSubjectSelected = null;
+let activeTimerStartedAtMs = null;
+let activeTimerAccumulatedSeconds = 0;
+
+const ACTIVE_TIMER_STORAGE_KEY = 'activeTimerState';
 
 // ===============================
 // UI DOM ELEMENTS
@@ -96,6 +100,7 @@ const btnNextWeek = document.getElementById('btn-next-week');
 // INITIALIZATION
 // ===============================
 window.addEventListener('DOMContentLoaded', () => {
+  restoreActiveTimerState();
   renderQuotaDashboard();
   renderWeekGrid();
   setupEventListeners();
@@ -124,6 +129,23 @@ function setupEventListeners() {
   if (btnAddCustomSubject) {
     btnAddCustomSubject.addEventListener('click', addNewCustomSubjectCard);
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      syncActiveTimerFromClock();
+      renderWeekGrid();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    syncActiveTimerFromClock();
+    renderWeekGrid();
+  });
+
+  window.addEventListener('pageshow', () => {
+    syncActiveTimerFromClock();
+    renderWeekGrid();
+  });
 }
 
 // ===============================
@@ -169,6 +191,62 @@ function formatTimerDigits(totalSeconds) {
   const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
   const secs = String(totalSeconds % 60).padStart(2, '0');
   return `${hrs}:${mins}:${secs}`;
+}
+
+function getActiveTimerElapsedSeconds() {
+  if (activeTimerStartedAtMs === null) {
+    return activeTimerAccumulatedSeconds || 0;
+  }
+
+  const elapsedFromStart = Math.floor((Date.now() - activeTimerStartedAtMs) / 1000);
+  return Math.max(0, (activeTimerAccumulatedSeconds || 0) + elapsedFromStart);
+}
+
+function syncActiveTimerFromClock() {
+  activeTimerSeconds = getActiveTimerElapsedSeconds();
+}
+
+function saveActiveTimerState() {
+  if (activeTimerStartedAtMs === null || !activeDayTargetStr || !activeSubjectSelected) {
+    localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(ACTIVE_TIMER_STORAGE_KEY, JSON.stringify({
+    date: activeDayTargetStr,
+    subject: activeSubjectSelected,
+    startedAtMs: activeTimerStartedAtMs,
+    accumulatedSeconds: activeTimerAccumulatedSeconds
+  }));
+}
+
+function restoreActiveTimerState() {
+  const raw = JSON.parse(localStorage.getItem(ACTIVE_TIMER_STORAGE_KEY));
+
+  if (!raw || typeof raw !== 'object') {
+    return;
+  }
+
+  if (!raw.date || !raw.subject || typeof raw.startedAtMs !== 'number') {
+    localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
+    return;
+  }
+
+  activeDayTargetStr = raw.date;
+  activeSubjectSelected = raw.subject;
+  activeTimerStartedAtMs = raw.startedAtMs;
+  activeTimerAccumulatedSeconds = Number(raw.accumulatedSeconds) || 0;
+  syncActiveTimerFromClock();
+
+  if (!activeTimerInterval) {
+    activeTimerInterval = setInterval(() => {
+      syncActiveTimerFromClock();
+      const display = document.getElementById('inline-clock-display');
+      if (display) {
+        display.textContent = formatTimerDigits(activeTimerSeconds);
+      }
+    }, 1000);
+  }
 }
 
 // ===============================
@@ -250,14 +328,14 @@ function renderQuotaDashboard() {
     const timeFormatted = formatExactMS(totalSecondsSpent);
     const sessionLengthLabel = formatSessionRule(subject);
 
-const fullSessions = Math.floor(
-  totalSecondsSpent / cardSessionDurationSeconds
-);
+    const fullSessions = Math.floor(
+      totalSecondsSpent / cardSessionDurationSeconds
+    );
 
     const card = document.createElement('div');
     card.className = 'quota-item';
 
-card.innerHTML = `
+    card.innerHTML = `
   <div style="display:flex; justify-content:space-between; align-items:baseline;">
     <div class="subject-title">${subject.toLowerCase()}</div>
     <div style="font-size:0.72rem; color:var(--text-muted); opacity:0.75;">
@@ -286,7 +364,7 @@ card.innerHTML = `
   </div>
 `;
 
-quotaDashboard.appendChild(card);
+    quotaDashboard.appendChild(card);
 
   });
 }
@@ -402,6 +480,8 @@ function renderWeekGrid() {
   if (!calendarGrid) return;
   calendarGrid.innerHTML = '';
 
+  syncActiveTimerFromClock();
+
   const monday = getMondayOfOffsetWeek(currentWeekOffset);
   const daysOfWeek = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -458,27 +538,35 @@ function renderWeekGrid() {
       timerModule.className = 'inline-timer-card';
 
       const headerRow = document.createElement('div');
-headerRow.style.display = 'flex';
-headerRow.style.justifyContent = 'space-between';
-headerRow.style.alignItems = 'center';
+      headerRow.style.display = 'flex';
+      headerRow.style.justifyContent = 'space-between';
+      headerRow.style.alignItems = 'center';
 
-const title = document.createElement('h4');
-title.textContent = `${dayLabelText} activity timer`;
+      const title = document.createElement('h4');
+      title.textContent = `${dayLabelText} activity timer`;
 
-const closeBtn = document.createElement('button');
-closeBtn.textContent = '×';
-closeBtn.style.padding = '2px 8px';
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '×';
+      closeBtn.style.padding = '2px 8px';
 
-closeBtn.onclick = () => {
-  activeDayTargetStr = null;
-  activeSubjectSelected = null;
-  renderWeekGrid();
-};
+      closeBtn.onclick = () => {
+        if (activeTimerInterval) {
+          clearInterval(activeTimerInterval);
+          activeTimerInterval = null;
+        }
+        activeDayTargetStr = null;
+        activeSubjectSelected = null;
+        activeTimerStartedAtMs = null;
+        activeTimerAccumulatedSeconds = 0;
+        activeTimerSeconds = 0;
+        localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
+        renderWeekGrid();
+      };
 
-headerRow.appendChild(title);
-headerRow.appendChild(closeBtn);
+      headerRow.appendChild(title);
+      headerRow.appendChild(closeBtn);
 
-timerModule.appendChild(headerRow);
+      timerModule.appendChild(headerRow);
 
 
       const select = document.createElement('select');
@@ -496,10 +584,12 @@ timerModule.appendChild(headerRow);
 
       select.onchange = (e) => {
         activeSubjectSelected = e.target.value;
+        saveActiveTimerState();
       };
 
       if (!activeSubjectSelected) {
         activeSubjectSelected = select.value;
+        saveActiveTimerState();
       }
 
       timerModule.appendChild(select);
@@ -532,6 +622,9 @@ timerModule.appendChild(headerRow);
         }
         activeDayTargetStr = dateStr;
         activeSubjectSelected = null;
+        activeTimerStartedAtMs = null;
+        activeTimerAccumulatedSeconds = 0;
+        activeTimerSeconds = 0;
         renderWeekGrid();
       };
       dayColumn.appendChild(btnAdd);
@@ -546,6 +639,7 @@ timerModule.appendChild(headerRow);
 // ===============================
 function handleInlineTimerToggle(dateStr, subjectValue) {
   if (activeTimerInterval) {
+    syncActiveTimerFromClock();
     clearInterval(activeTimerInterval);
     activeTimerInterval = null;
 
@@ -559,20 +653,30 @@ function handleInlineTimerToggle(dateStr, subjectValue) {
       localStorage.setItem('loggedSessions', JSON.stringify(loggedSessions));
     }
 
+    activeTimerStartedAtMs = null;
+    activeTimerAccumulatedSeconds = 0;
     activeTimerSeconds = 0;
+    localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
     activeDayTargetStr = null;
     activeSubjectSelected = null;
     renderQuotaDashboard();
     renderWeekGrid();
   } else {
     activeSubjectSelected = subjectValue;
+    activeDayTargetStr = dateStr;
+    activeTimerAccumulatedSeconds = 0;
+    activeTimerStartedAtMs = Date.now();
+    syncActiveTimerFromClock();
+    saveActiveTimerState();
+
     activeTimerInterval = setInterval(() => {
-      activeTimerSeconds++;
+      syncActiveTimerFromClock();
       const display = document.getElementById('inline-clock-display');
       if (display) {
         display.textContent = formatTimerDigits(activeTimerSeconds);
       }
     }, 1000);
+
     renderWeekGrid();
   }
 }
