@@ -1,6 +1,6 @@
 # Study Session Tracker
 
-Alocal app I built to keep track of my study sessions.
+A local app I built to keep track of my study sessions.
 I wanted something to log what I study, set targets, and see my weekly progress — so I made this.
 
 ## What it does
